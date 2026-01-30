@@ -1,0 +1,71 @@
+# Git Sources
+.git
+.gitignore
+.gitattributes
+
+# Remove Rust Sources
+rust/
+target/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+octa
+octa-bench
+app
+main
+bin/
+dist/
+vendor/
+
+# Data Files
+data/
+uploads/
+images/
+assets/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+
+# Docker files and files that are not required within Docker
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+Dockerfile.warden
+README.md
+LICENSE
+Makefile
+scripts/
+bench.json
+docs/
+
+
+# Others
+.idea/
+.vscode/
+.qodo/
+docs/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.iml
+
+*.log
+logs/
+tmp/
+temp/
+coverage.out
+
+
+# Agentx
+main.agentx
+warden.agentx

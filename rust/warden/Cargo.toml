@@ -1,0 +1,13 @@
+[package]
+name = "octa-warden"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+# SQLite
+rusqlite = { version = "0.38.0", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9.33"
+image = "0.25.0"
+clap = { version = "4.5.55", features = ["derive"] }
+console = "0.16.2"

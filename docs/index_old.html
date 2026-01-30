@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Octa - Avatar & Blob Microservice</title>
+    <meta name="description" content="A self-hosted microservice for generating initials avatars and serving static assets via SQLite Blob storage.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      window.GO_CONFIG = {
+        BASE_URL: "{{.BaseURL}}" || window.location.origin,
+      };
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { 
+                sans: ['"Inter"', "sans-serif"],
+                mono: ['"JetBrains Mono"', "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#eef2ff",
+                100: "#e0e7ff",
+                200: "#c7d2fe",
+                300: "#a5b4fc",
+                400: "#818cf8",
+                500: "#6366f1", 
+                600: "#514AE6", // Octa Brand
+                700: "#4338ca",
+                800: "#3730a3",
+                900: "#312e81",
+              },
+              dark: {
+                800: "#1e293b",
+                900: "#0f172a",
+                950: "#020617",
+              },
+            },
+            backgroundImage: {
+                'grid-pattern': "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
+            }
+          },
+        },
+      };
+    </script>
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"
+    ></script>
+
+    <style>
+      [x-cloak] { display: none !important; }
+      .glass-nav {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+      }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #514AE6;
+        margin-top: -6px;
+        cursor: pointer;
+        box-shadow: 0 0 0 4px rgba(81, 74, 230, 0.2);
+        transition: box-shadow 0.2s;
+      }
+      input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #e2e8f0;
+        border-radius: 2px;
+      }
+      .code-block {
+          background-color: #0f172a;
+          color: #e2e8f0;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.875rem;
+          overflow-x: auto;
+          border: 1px solid #1e293b;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-white text-slate-800 antialiased selection:bg-brand-100 selection:text-brand-900"
+    x-data="avatarApp()"
+  >
+    <nav class="fixed w-full z-50 glass-nav transition-all duration-300">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <div class="flex items-center gap-3 group cursor-pointer" @click="window.scrollTo(0,0)">
+            <div class="relative w-9 h-9 transition-transform duration-500 group-hover:rotate-12">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-sm">
+                    <path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" class="text-brand-400" fill="currentColor"/>
+                    <path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" class="text-brand-600" fill="currentColor"/>
+                    <path d="M66 38H34C30.6863 38 28 40.6863 28 44C28 47.3137 30.6863 50 34 50H66C69.3137 50 72 47.3137 72 44C72 40.6863 69.3137 38 66 38Z" class="text-brand-800" fill="currentColor"/>
+                    <path d="M32 79C32 76.2386 29.7614 74 27 74C24.2386 74 22 76.2386 22 79V83C22 85.7614 24.2386 88 27 88C29.7614 88 32 85.7614 32 83V79Z" class="text-brand-400" fill="currentColor"/>
+                    <path d="M48 81C48 78.2386 45.7614 76 43 76C40.2386 76 38 78.2386 38 81V87C38 89.7614 40.2386 92 43 92C45.7614 92 48 89.7614 48 87V81Z" class="text-brand-400" fill="currentColor"/>
+                    <path d="M62 81C62 78.2386 59.7614 76 57 76C54.2386 76 52 78.2386 52 81V87C52 89.7614 54.2386 92 57 92C59.7614 92 62 89.7614 62 87V81Z" class="text-brand-400" fill="currentColor"/>
+                    <path d="M78 79C78 76.2386 75.7614 74 73 74C70.2386 74 68 76.2386 68 79V83C68 85.7614 70.2386 88 73 88C75.7614 88 78 85.7614 78 83V79Z" class="text-brand-400" fill="currentColor"/>
+                    <rect x="33" y="40" width="10" height="3" rx="1.5" class="text-brand-500" fill="currentColor"/>
+                    <path d="M39 59.5C56 63.5 65.5 54.6667 66 53" stroke="#B7BCFF" stroke-width="2"/>
+                </svg>
+            </div>
+            <span class="font-bold text-xl tracking-tight text-dark-950 font-sans">Octa</span>
+          </div>
+          
+          <div class="hidden md:flex space-x-8 items-center">
+            <a href="#architecture" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition">Architecture</a>
+            <a href="#playground" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition">Playground</a>
+            <a href="#docs" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition">Docs</a>
+            <a href="https://github.com/onurartan/octa" target="_blank" class="text-sm font-medium text-white bg-dark-900 px-4 py-2 rounded-lg hover:bg-dark-800 transition flex items-center gap-2">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.4 0 12.07c0 5.34 3.44 9.86 8.21 11.46.6.11.82-.26.82-.58v-2.23c-3.34.74-4.04-1.61-4.04-1.61-.55-1.42-1.34-1.8-1.34-1.8-1.1-.77.08-.75.08-.75 1.22.09 1.86 1.26 1.86 1.26 1.08 1.88 2.82 1.34 3.5 1.02.11-.79.42-1.34.76-1.65-2.66-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.23-3.29-.12-.31-.53-1.55.12-3.23 0 0 1-.33 3.3 1.26a11.23 11.23 0 0 1 6 0c2.3-1.59 3.3-1.26 3.3-1.26.65 1.68.24 2.92.12 3.23.77.86 1.23 1.95 1.23 3.29 0 4.7-2.82 5.74-5.5 6.05.44.38.83 1.13.83 2.27v3.37c0 .32.22.7.83.58A12.09 12.09 0 0 0 24 12.07C24 5.4 18.63 0 12 0z"/></svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="relative pt-32 pb-20 sm:pt-40 sm:pb-24 overflow-hidden">
+      <div class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-[0.4] z-0"></div>
+      
+      <div class="absolute top-0 left-1/2 w-full -translate-x-1/2 h-full z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-20 left-10 w-[500px] h-[500px] bg-brand-200/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-pulse"></div>
+        <div class="absolute top-40 right-10 w-[400px] h-[400px] bg-purple-200/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-70" style="animation-delay: 2s"></div>
+      </div>
+
+      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-600 text-xs font-semibold mb-8 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          v0.0.1 Released
+        </div>
+        
+        <h1 class="text-5xl sm:text-7xl font-bold tracking-tight text-dark-950 mb-6 leading-tight font-sans">
+          High-Performance<br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-purple-600">Asset & Avatar Microservice</span>
+        </h1>
+        
+        <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed font-light">
+          Stop using complex object storage for simple assets. Octa provides a unified API to generate algorithmic avatars on-the-fly and store static user uploads directly in <span class="font-semibold text-gray-800">SQLite Blobs</span> for maximum speed and portability.
+        </p>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a href="#playground" class="px-8 py-4 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition shadow-xl shadow-brand-600/20 flex items-center justify-center gap-2">
+            Try Playground
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+          </a>
+          <a href="#architecture" class="px-8 py-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition shadow-sm">
+            How It Works
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <section id="architecture" class="py-20 bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="p-8 rounded-3xl bg-gray-50 border border-gray-100 hover:border-brand-200 transition duration-300 group hover:shadow-lg">
+                    <div class="w-14 h-14 bg-white rounded-2xl border border-gray-200 flex items-center justify-center mb-6 text-brand-600 group-hover:scale-110 transition shadow-sm">
+                        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark-900 mb-3">SQLite Blob Storage</h3>
+                    <p class="text-gray-600 leading-relaxed text-sm">
+                        Octa uses SQLite in <strong>WAL Mode</strong> as a high-performance object store. For small files (like avatars/thumbnails), storing blobs in SQLite is often faster than the filesystem and simplifies backups to a single file.
+                    </p>
+                </div>
+
+                <div class="p-8 rounded-3xl bg-gray-50 border border-gray-100 hover:border-brand-200 transition duration-300 group hover:shadow-lg">
+                    <div class="w-14 h-14 bg-white rounded-2xl border border-gray-200 flex items-center justify-center mb-6 text-purple-600 group-hover:scale-110 transition shadow-sm">
+                        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.543 12l-1.88 1.88a2 2 0 01-2.828 0l-.664-.664a2 2 0 010-2.828L7.65 8.95A6 6 0 1015 7z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark-900 mb-3">Key-Value Mapping</h3>
+                    <p class="text-gray-600 leading-relaxed text-sm">
+                        Decouple your file IDs from public URLs. Map a single uploaded blob to multiple keys (e.g. <code>user-123</code>, <code>admin-profile</code>). Assets are retrieved instantly via these keys, not complex file paths.
+                    </p>
+                </div>
+
+                <div class="p-8 rounded-3xl bg-gray-50 border border-gray-100 hover:border-brand-200 transition duration-300 group hover:shadow-lg">
+                    <div class="w-14 h-14 bg-white rounded-2xl border border-gray-200 flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 transition shadow-sm">
+                        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark-900 mb-3">Algorithmic Generation</h3>
+                    <p class="text-gray-600 leading-relaxed text-sm">
+                        If no custom asset is found for a key, Octa automatically falls back to generating a unique, consistent avatar based on the key string (Initials, Gradients, Shapes).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="playground" class="py-20 bg-white border-b border-gray-100 scroll-mt-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+          
+          <div class="lg:col-span-5 space-y-6">
+            <div>
+                <div class="inline-flex items-center gap-2 px-2 py-1 bg-brand-50 rounded text-brand-700 text-xs font-bold mb-2 uppercase tracking-wide">Live Preview</div>
+                <h2 class="text-2xl font-bold text-dark-900">Avatar Generator</h2>
+                <p class="text-gray-500 mt-1 text-sm">Customize the algorithmic engine output.</p>
+            </div>
+
+            <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-200 space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Seed Name</label>
+                    <div class="relative group">
+                        <input type="text" x-model.debounce.300ms="params.name" class="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition font-medium text-dark-900 bg-white group-hover:border-gray-300" placeholder="e.g. Onur Artan">
+                        <button @click="randomize()" class="absolute right-3 top-2.5 p-1.5 text-gray-400 hover:text-brand-600 rounded-lg hover:bg-gray-100 transition" title="Randomize">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Shape</label>
+                        <div class="flex bg-white p-1 rounded-lg border border-gray-200">
+                            <button @click="params.shape = 'circle'" :class="params.shape === 'circle' ? 'bg-brand-50 text-brand-700 font-medium shadow-sm' : 'text-gray-500 hover:bg-gray-50'" class="flex-1 py-1.5 rounded-md text-sm transition-all flex items-center justify-center gap-1">
+                                <div class="w-3 h-3 rounded-full border border-current bg-current opacity-50"></div> Circle
+                            </button>
+                            <button @click="params.shape = 'square'" :class="params.shape === 'square' ? 'bg-brand-50 text-brand-700 font-medium shadow-sm' : 'text-gray-500 hover:bg-gray-50'" class="flex-1 py-1.5 rounded-md text-sm transition-all flex items-center justify-center gap-1">
+                                <div class="w-3 h-3 rounded border border-current bg-current opacity-50"></div> Sq
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Initials</label>
+                         <input type="text" x-model.lazy="params.initials" class="w-full py-2 px-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Auto">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-200 space-y-5">
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-semibold text-gray-700">Theme Engine</label>
+                    <code class="text-xs bg-dark-900 text-brand-300 px-2 py-1 rounded font-mono" x-text="'theme=' + params.style + '/' + params.palette"></code>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500 font-medium mb-2 block">Render Style</label>
+                    <div class="flex gap-2">
+                        <template x-for="s in ['gradient', 'color', 'soft']">
+                            <button @click="params.style = s" 
+                                class="flex-1 py-2 text-sm font-medium rounded-lg border transition-all capitalize"
+                                :class="params.style === s ? 'border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'"
+                                x-text="s"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500 font-medium mb-2 block">Color Palette</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <template x-for="p in ['auto', 'retro', 'pro', 'google']">
+                            <button @click="params.palette = p" 
+                                class="py-2 px-1 text-xs font-bold uppercase rounded-lg border transition-all"
+                                :class="params.palette === p ? 'border-brand-500 bg-brand-600 text-white shadow-md transform scale-105' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                                x-text="p"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="text-xs font-medium text-brand-600 hover:text-brand-800 flex items-center gap-1">
+                        <span x-text="open ? '-' : '+'"></span> Advanced Overrides
+                    </button>
+                    <div x-show="open" class="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Force BG</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" class="w-8 h-8 rounded cursor-pointer border-0 p-0" @change="params.bgOverride = $event.target.value">
+                                <input type="text" x-model.lazy="params.bgOverride" placeholder="e.g. red" class="w-full text-xs border-b border-gray-200 focus:border-brand-500 outline-none py-1 bg-transparent font-mono">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Force Text</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" class="w-8 h-8 rounded cursor-pointer border-0 p-0" @change="params.colorOverride = $event.target.value">
+                                <input type="text" x-model.lazy="params.colorOverride" placeholder="e.g. #FFF" class="w-full text-xs border-b border-gray-200 focus:border-brand-500 outline-none py-1 bg-transparent font-mono">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 p-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Size (px)</label>
+                    <input type="range" min="64" max="1024" step="16" x-model.debounce.300ms="params.w" class="w-full">
+                    <div class="text-right text-xs font-mono text-gray-400 mt-1" x-text="params.w + 'px'"></div>
+                </div>
+                <div>
+                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Format</label>
+                     <div class="flex bg-gray-100 rounded-lg p-1">
+                         <button @click="params.type = 'png'" class="flex-1 py-1 text-xs font-bold rounded" :class="params.type === 'png' ? 'bg-white shadow text-brand-700' : 'text-gray-500'">PNG</button>
+                         <button @click="params.type = 'svg'" class="flex-1 py-1 text-xs font-bold rounded" :class="params.type === 'svg' ? 'bg-white shadow text-brand-700' : 'text-gray-500'">SVG</button>
+                     </div>
+                </div>
+            </div>
+
+          </div>
+
+          <div class="lg:col-span-7 flex flex-col sticky top-24">
+            <div class="bg-gray-50 rounded-3xl border border-gray-200 p-8 min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden shadow-inner group">
+                <div class="absolute inset-0 bg-grid-pattern bg-[length:32px_32px] opacity-60"></div>
+                
+                <div class="relative z-10 transition-transform duration-500 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-brand-500 to-purple-500 rounded-full blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity duration-700"></div>
+                    <img 
+                        :src="generateUrl()" 
+                        class="w-64 h-64 sm:w-80 sm:h-80 shadow-2xl ring-8 ring-white bg-white object-cover transition-all"
+                        :class="params.shape === 'circle' ? 'rounded-full' : 'rounded-3xl'"
+                        alt="Avatar"
+                    >
+                </div>
+
+                <div class="absolute bottom-6 right-6 text-xs text-gray-400 font-mono">
+                    Generated in <span class="text-brand-600 font-bold">2ms</span> (Go)
+                </div>
+            </div>
+
+            <div class="mt-6 bg-dark-900 rounded-xl p-4 shadow-xl flex flex-col sm:flex-row items-center gap-3">
+                <div class="px-2 py-1 bg-brand-600 text-white text-[10px] font-bold rounded tracking-wide font-mono">GET</div>
+                <div class="flex-1 overflow-x-auto whitespace-nowrap scrollbar-hide w-full">
+                    <code class="text-gray-300 text-sm font-mono" x-text="generateUrl()"></code>
+                </div>
+                <div class="flex items-center gap-2 border-l border-white/10 pl-3">
+                    <button @click="copyUrl()" class="p-2 text-gray-400 hover:text-white transition" title="Copy URL">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    </button>
+                    <button @click="downloadAvatar()" class="p-2 text-brand-400 hover:text-brand-300 transition" title="Download">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </button>
+                </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section id="docs" class="py-24 bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <div class="mb-16 text-center">
+                <h2 class="text-3xl font-bold text-dark-950 mb-4">API Documentation</h2>
+                <p class="text-gray-600">Reference for the Avatar Generator and Blob Storage Engine.</p>
+            </div>
+
+            <div class="grid gap-20">
+                
+                <div>
+                    <div class="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+                        <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg">1</div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">Generation API</h3>
+                            <p class="text-sm text-gray-500">Algorithmic creation for users without uploaded photos.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <div>
+                            <p class="text-gray-600 mb-6 leading-relaxed text-sm">
+                                The engine generates deterministic colors and shapes based on the input seed. 
+                                Use the <code>theme</code> parameter to control the visual output style.
+                            </p>
+                            <div class="code-block mb-6 shadow-lg">
+                                <div class="text-gray-500 mb-2"># Basic Endpoint</div>
+                                <div class="text-brand-400 mb-4">GET /avatar/{seed}</div>
+                                
+                                <div class="text-gray-500 mb-2"># With Theme</div>
+                                <div class="text-white">GET /avatar/onur?theme=<span class="text-yellow-400">gradient</span>/<span class="text-green-400">retro</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm h-fit">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-gray-50 border-b border-gray-200 text-gray-500">
+                                    <tr>
+                                        <th class="px-4 py-3">Param</th>
+                                        <th class="px-4 py-3">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <tr class="bg-white">
+                                        <td class="px-4 py-3 font-mono font-bold text-brand-600">theme</td>
+                                        <td class="px-4 py-3 text-gray-600">Format: <code>style/palette</code>. <br>Styles: <code>gradient, color, soft</code>.</td>
+                                    </tr>
+                                    <tr class="bg-gray-50/50">
+                                        <td class="px-4 py-3 font-mono font-bold text-brand-600">bg</td>
+                                        <td class="px-4 py-3 text-gray-600">Force background color (Hex or Name).</td>
+                                    </tr>
+                                    <tr class="bg-white">
+                                        <td class="px-4 py-3 font-mono font-bold text-brand-600">color</td>
+                                        <td class="px-4 py-3 text-gray-600">Force text color.</td>
+                                    </tr>
+                                    <tr class="bg-gray-50/50">
+                                        <td class="px-4 py-3 font-mono font-bold text-brand-600">rounded</td>
+                                        <td class="px-4 py-3 text-gray-600">0-100 or 'true'.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-lg">2</div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">Blob Store API</h3>
+                            <p class="text-sm text-gray-500">Static asset storage and retrieval via SQLite.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <div>
+                            <p class="text-gray-600 mb-4 leading-relaxed text-sm">
+                                Store assets in the internal SQLite engine using the <code>/upload</code> endpoint (Requires <code>X-Secret-Key</code>). 
+                                Ideal for user profile pictures and static site logos.
+                            </p>
+                            
+                            <h4 class="font-bold text-dark-900 mt-6 mb-2 text-sm">Upload Asset (cURL)</h4>
+                            <div class="code-block shadow-lg">
+                                <div class="text-purple-400 mb-2">POST /upload</div>
+                                <div class="text-white text-xs whitespace-pre-wrap">curl -X POST {{.BaseURL}}/upload \
+  -H "X-Secret-Key: YOUR_SECRET" \
+  -F "avatar=@profile.jpg" \
+  -F "keys=user-123,my-profile"</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-dark-900 mb-2 text-sm">Retrieve Asset</h4>
+                            <p class="text-gray-600 text-sm mb-4">
+                                Access stored blobs using any mapped key. The server automatically handles MIME types and caching.
+                            </p>
+                            <div class="code-block shadow-lg h-fit">
+                                <div class="text-brand-400 mb-2">GET /u/{key}</div>
+                                <div class="text-gray-500 text-xs mb-2"># Example</div>
+                                <div class="text-white text-xs">GET /u/user-123</div>
+                                <div class="text-white text-xs">GET /u/my-profile</div>
+                            </div>
+                            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-xs text-yellow-800">
+                                <strong>Note:</strong> Blob serving serves the raw binary data stored in the database. Use this for avatars uploaded by users.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-white border-t border-gray-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div class="flex items-center gap-3">
+              <div class="w-8 h-8 opacity-80">
+                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-brand-900">
+                      <path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" fill="currentColor"/>
+                      <path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" class="text-white" fill="currentColor"/>
+                  </svg>
+              </div>
+              <div>
+                  <div class="font-bold text-dark-900 text-sm">Octa</div>
+                  <div class="text-xs text-gray-500">v0.0.1</div>
+              </div>
+          </div>
+          <div class="text-sm text-gray-500">
+            &copy; <span x-text="new Date().getFullYear()"></span> Octa. MIT License.
+          </div>
+        </div>
+      </footer>
+
+    <div
+        x-show="toast.show"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="translate-y-4 opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-4 opacity-0"
+        class="fixed bottom-6 right-6 z-[100] bg-dark-900 text-white pl-4 pr-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-700/50"
+        x-cloak
+    >
+        <div class="text-brand-400">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <p class="text-sm font-medium" x-text="toast.message"></p>
+    </div>
+
+    <script>
+        function avatarApp() {
+            return {
+                baseUrl: window.GO_CONFIG.BASE_URL,
+                toast: { show: false, message: '' },
+                
+                // State
+                params: {
+                    name: 'Octa',
+                    initials: '',
+                    style: 'gradient',  // theme part 1
+                    palette: 'auto',    // theme part 2
+                    bgOverride: '',
+                    colorOverride: '',
+                    type: 'png',
+                    w: 512,
+                    shape: 'circle',
+                },
+
+                init() {
+                    if (this.baseUrl.endsWith('/')) {
+                        this.baseUrl = this.baseUrl.slice(0, -1);
+                    }
+                    this.randomize();
+                },
+
+                generateUrl() {
+                    const p = this.params;
+                    const query = new URLSearchParams();
+
+                    // 1. Theme (The new logic)
+                    const themeVal = `${p.style}/${p.palette}`;
+                    query.append('theme', themeVal);
+
+                    // 2. Overrides
+                    if (p.bgOverride) query.append('bg', p.bgOverride.replace('#', ''));
+                    if (p.colorOverride) query.append('color', p.colorOverride.replace('#', ''));
+                    if (p.initials && p.initials !== 'Auto') query.append('initials', p.initials);
+
+                    // 3. Output Specs
+                    if (p.type !== 'png') query.append('format', p.type);
+                    query.append('size', p.w);
+                    
+                    if (p.shape === 'circle') query.append('rounded', '100');
+                    else query.append('rounded', '0');
+
+                    return `${this.baseUrl}/avatar/${encodeURIComponent(p.name)}?${query.toString()}`;
+                },
+
+                randomize() {
+                    const names = ['Octa', 'GoLang', 'Octopus', 'Docker', 'Kubernetes', 'Redis', 'Nginx', 'Apache', 'Linux', 'Ubuntu', 'Debian', 'Fedora', 'CentOS', 'Arch', 'Gentoo', 'FreeBSD', 'OpenBSD', 'NetBSD', 'DragonFly', 'Solaris', 'AIX', 'HP-UX', 'Plan9', 'Inferno', 'Minix'];
+                    this.params.name = names[Math.floor(Math.random() * names.length)];
+                    // Keep overrides to see effect on new names, or clear if you prefer
+                    // this.params.bgOverride = ''; 
+                    // this.params.colorOverride = '';
+                },
+
+                async copyUrl() {
+                    try {
+                        await navigator.clipboard.writeText(this.generateUrl());
+                        this.showToast('URL Copied to Clipboard');
+                    } catch(err) {
+                        prompt('Copy URL:', this.generateUrl());
+                    }
+                },
+
+                async downloadAvatar() {
+                    try {
+                        const response = await fetch(this.generateUrl());
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `octa-${this.params.name}.${this.params.type}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        this.showToast('Download Started');
+                    } catch (error) {
+                        this.showToast('Download Failed');
+                    }
+                },
+
+                showToast(msg) {
+                    this.toast.message = msg;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false }, 3000);
+                }
+            }
+        }
+    </script>
+  </body>
+</html>

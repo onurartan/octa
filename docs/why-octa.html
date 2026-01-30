@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Why Octa? — The Architecture & Design</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The technical rationale behind Octa: A lightweight asset engine built on SQLite WAL mode."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+            colors: {
+              neutral: {
+                850: "#1f1f1f",
+                900: "#171717",
+                950: "#0a0a0a",
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      body {
+        font-feature-settings: "liga", "kern";
+        -webkit-font-smoothing: antialiased;
+      }
+      .prose p {
+        margin-bottom: 1.5em;
+        line-height: 1.75;
+        color: #525252;
+      }
+      .prose strong {
+        color: #171717;
+        font-weight: 600;
+      }
+      .prose a {
+        color: #171717;
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+      }
+      .prose a:hover {
+        color: #4f46e5;
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-white text-neutral-900 antialiased selection:bg-neutral-900 selection:text-white"
+  >
+    <div class="min-h-screen flex flex-col">
+      <header
+        class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-neutral-100 z-50"
+      >
+        <div
+          class="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between"
+        >
+          <a
+            href="/"
+            class="font-semibold tracking-tight text-lg flex items-center gap-2"
+          >
+            <div class="w-3 h-3 bg-neutral-900 rounded-full"></div>
+            Octa
+          </a>
+          <nav class="text-sm text-neutral-500 font-medium flex gap-6">
+            <a
+              href="https://github.com/onurartan/octa"
+              target="_blank"
+              class="hover:text-neutral-900 transition flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 0C5.37 0 0 5.4 0 12.07c0 5.34 3.44 9.86 8.21 11.46.6.11.82-.26.82-.58v-2.23c-3.34.74-4.04-1.61-4.04-1.61-.55-1.42-1.34-1.8-1.34-1.8-1.1-.77.08-.75.08-.75 1.22.09 1.86 1.26 1.86 1.26 1.08 1.88 2.82 1.34 3.5 1.02.11-.79.42-1.34.76-1.65-2.66-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.23-3.29-.12-.31-.53-1.55.12-3.23 0 0 1-.33 3.3 1.26a11.23 11.23 0 0 1 6 0c2.3-1.59 3.3-1.26 3.3-1.26.65 1.68.24 2.92.12 3.23.77.86 1.23 1.95 1.23 3.29 0 4.7-2.82 5.74-5.5 6.05.44.38.83 1.13.83 2.27v3.37c0 .32.22.7.83.58A12.09 12.09 0 0 0 24 12.07C24 5.4 18.63 0 12 0z"
+                />
+              </svg>
+              GitHub
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="flex-1 pt-32 pb-24">
+        <article class="max-w-3xl mx-auto px-6">
+          <div class="mb-16">
+            <div class="text-sm font-mono text-neutral-400 mb-4">
+              ARCHITECTURE / DESIGN DECISIONS
+            </div>
+            <h1
+              class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight text-neutral-900 mb-6"
+            >
+              Why we built Octa.
+            </h1>
+            <p class="text-xl text-neutral-500 font-light leading-relaxed">
+              Moving away from S3 complexity towards a specialized,
+              SQLite-backed engine for user identity and lightweight assets.
+            </p>
+          </div>
+
+          <div class="prose max-w-none">
+            <p>
+              The journey of <strong>Octa</strong> began with a simple yet
+              recurring problem. While building various web applications, I
+              realized that handling user identities—specifically profile
+              pictures—was always a friction point.
+            </p>
+
+            <p>
+              Initially, I developed <em>GoAvatar</em>, a lightweight tool that
+              generated deterministic, hash-based avatars. It solved the "empty
+              profile" problem gracefully. But as projects grew, the
+              requirements shifted: I needed a system that could handle
+              <strong>custom user uploads</strong> while maintaining the
+              automatic fallback generation.
+            </p>
+
+            <h2 class="text-2xl font-semibold mt-12 mb-6 tracking-tight">
+              The Friction of Object Storage
+            </h2>
+            <p>
+              The industry standard for storing user uploads is almost always
+              <strong>Amazon S3</strong> (or compatible alternatives like
+              Cloudflare R2 or MinIO). However, for a medium-scale project
+              focused solely on avatars and banners, these solutions introduced
+              unnecessary overhead:
+            </p>
+            <ul class="list-none pl-0 space-y-4 my-8">
+              <li class="flex gap-3">
+                <span class="text-red-500 font-bold">✕</span>
+                <span
+                  ><strong>Financial Overhead:</strong> Monthly costs and
+                  complex egress fees don't make sense for small assets.</span
+                >
+              </li>
+              <li class="flex gap-3">
+                <span class="text-red-500 font-bold">✕</span>
+                <span
+                  ><strong>Infrastructure Complexity:</strong> Managing IAM
+                  roles, bucket policies, and SDKs adds layers to a simple
+                  microservice.</span
+                >
+              </li>
+              <li class="flex gap-3">
+                <span class="text-red-500 font-bold">✕</span>
+                <span
+                  ><strong>Backup Nightmares:</strong> Syncing local
+                  environments with the cloud can be an operational
+                  burden.</span
+                >
+              </li>
+            </ul>
+
+            <p>I needed something portable, cost-effective, and specialized.</p>
+
+            <h2 class="text-2xl font-semibold mt-12 mb-6 tracking-tight">
+              The SQLite Breakthrough
+            </h2>
+            <p>
+              While researching storage architectures, I encountered a critical
+              study by the <strong>SQLite team</strong> titled
+              <a href="https://www.sqlite.org/fasterthanfs.html" target="_blank"
+                >"35% Faster Than The Filesystem"</a
+              >.
+            </p>
+
+            <blockquote
+              class="border-l-2 border-neutral-900 pl-6 py-2 my-8 italic text-neutral-600 bg-neutral-50 rounded-r-lg"
+            >
+              "For files smaller than 100KB, reading BLOBs from an SQLite
+              database is 35% faster than reading them from the filesystem."
+            </blockquote>
+
+            <p>
+              This was the "aha!" moment. I realized I could build an engine
+              that treated
+              <strong>SQLite as a high-performance object store</strong> while
+              keeping the entire service portable as a single binary. No file
+              system clutter, no external dependencies.
+            </p>
+
+            <p>
+              While Octa supports files up to your configured limit (e.g., 5MB),
+              it is mathematically optimized for the
+              <strong>small, high-frequency assets</strong> typical of user
+              profiles (thumbnails, avatars, icons). It treats SQLite not just
+              as a database, but as a high-performance object store.
+            </p>
+
+            <h2 class="text-2xl font-semibold mt-12 mb-6 tracking-tight">
+              Optimizing for Write Performance
+            </h2>
+            <p>
+              Transitioning to database storage wasn't without hurdles. Early
+              versions faced write bottlenecks during high-load uploads. To
+              solve this, I took a two-pronged approach:
+            </p>
+            <ol class="list-decimal list-inside space-y-2 text-neutral-600">
+              <li>
+                <strong>Octa-Warden:</strong> A dedicated integrity tool written
+                in <strong>Rust</strong> to monitor database health.
+              </li>
+              <li>
+                <strong>Concurrency Tuning:</strong> Tuned the SQLite engine
+                into <strong>WAL (Write-Ahead Logging) mode</strong> with
+                optimized PRAGMAs, using AI-assisted profiling.
+              </li>
+            </ol>
+
+            <div
+              class="bg-neutral-900 text-neutral-400 rounded-xl p-6 font-mono text-sm my-8 overflow-x-auto shadow-xl"
+            >
+              <div
+                class="flex items-center justify-between border-b border-neutral-800 pb-4 mb-4"
+              >
+                <div class="text-white font-bold">
+                  Benchmark Results (v0.0.1)
+                </div>
+                <div
+                  class="text-[10px] bg-neutral-800 px-2 py-1 rounded text-neutral-400"
+                >
+                  INTERNAL TEST
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div class="text-neutral-500 text-xs mb-1">
+                    Write Throughput
+                  </div>
+                  <div class="text-green-400 font-bold text-lg">
+                    1,200+ ops/sec
+                  </div>
+                </div>
+                <div>
+                  <div class="text-neutral-500 text-xs mb-1">P99 Latency</div>
+                  <div class="text-white font-bold text-lg">~150/300ms</div>
+                </div>
+              </div>
+              <div class="mt-4 text-xs text-neutral-600">
+                * Verified by internal Rust and Go benchmarking tools.
+              </div>
+            </div>
+
+            <h2
+              class="text-lg font-semibold text-neutral-900 mt-12 mb-6 tracking-tight"
+            >
+              Core Pillars of Octa
+            </h2>
+            <div class="grid gap-6">
+              <div
+                class="border border-neutral-200 rounded-lg p-6 hover:border-neutral-300 transition bg-neutral-50/30"
+              >
+                <h3
+                  class="font-semibold text-neutral-900 mb-2 text-sm uppercase tracking-wide"
+                >
+                  1. Unified Identity Logic
+                </h3>
+                <p class="text-sm text-neutral-500 m-0 leading-relaxed">
+                  Octa is built on a "Fallback-First" philosophy. You request an
+                  asset via a key. If a custom upload exists, Octa serves it. If
+                  not, the engine instantly generates a deterministic
+                  initials-based avatar. One URL handles everything.
+                </p>
+              </div>
+              <div
+                class="border border-neutral-200 rounded-lg p-6 hover:border-neutral-300 transition bg-neutral-50/30"
+              >
+                <h3
+                  class="font-semibold text-neutral-900 mb-2 text-sm uppercase tracking-wide"
+                >
+                  2. Extreme Portability
+                </h3>
+                <p class="text-sm text-neutral-500 m-0 leading-relaxed">
+                  Designed for the developer who values simplicity. Your entire
+                  media library is a single <code>.db</code> file. Backups are
+                  as simple as a file copy. Moving servers takes seconds, not
+                  hours.
+                </p>
+              </div>
+              <div
+                class="border border-neutral-200 rounded-lg p-6 hover:border-neutral-300 transition bg-neutral-50/30"
+              >
+                <h3
+                  class="font-semibold text-neutral-900 mb-2 text-sm uppercase tracking-wide"
+                >
+                  3. Resilience
+                </h3>
+                <p class="text-sm text-neutral-500 m-0 leading-relaxed">
+                  Octa is fortified with <strong>Rate Limiting</strong> to
+                  prevent API abuse, aggressive in-memory caching for speed, and
+                  a clean ConsoleUI for system visibility.
+                </p>
+              </div>
+            </div>
+
+            <h2
+              class="text-lg font-semibold text-neutral-900 mt-12 mb-4 tracking-tight"
+            >
+              Where to use Octa?
+            </h2>
+            <p>
+              Octa shines in environments where you need a specialized, fast,
+              and easy-to-manage asset layer:
+            </p>
+            <ul class="list-disc list-inside space-y-2 text-neutral-600 mb-8">
+              <li>
+                <strong>SaaS Platforms:</strong> For consistent user branding.
+              </li>
+              <li>
+                <strong>Internal Tools:</strong> Where cloud storage is
+                overkill.
+              </li>
+              <li>
+                <strong>Gaming Communities:</strong> High-frequency avatar
+                generation.
+              </li>
+              <li>
+                <strong>Lightweight CMS:</strong> Storing banners and featured
+                images.
+              </li>
+            </ul>
+
+            <p class="font-medium text-neutral-900">
+              Octa is not an S3 replacement for terabytes of data. It is a
+              specialized scalpel for user identity and lightweight asset
+              delivery.
+            </p>
+
+            <hr class="border-neutral-200 my-12" />
+
+            <div class="flex justify-center">
+              <a
+                href="https://github.com/onurartan/octa"
+                class="inline-flex items-center justify-center rounded-md bg-neutral-200 px-6 py-3 text-sm font-medium text-neutral-900 hover:bg-neutral-300 transition shadow-sm"
+              >
+                Explore on GitHub
+              </a>
+            </div>
+          </div>
+        </article>
+      </main>
+
+      <footer class="border-t border-neutral-100 bg-neutral-50">
+        <div
+          class="max-w-3xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-neutral-500"
+        >
+          <p>© 2026 Octa. All rights reserved.</p>
+          <p>Designed by Onur Artan.</p>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

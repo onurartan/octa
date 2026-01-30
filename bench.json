@@ -1,0 +1,6 @@
+{
+    "base_url": "http://127.0.0.1:9980",
+    "total_req": 20000,
+    "worker": 200,
+    "upload_secret": "secret"
+}

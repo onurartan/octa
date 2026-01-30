@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Octa — Specialized Asset Engine</title>
+    <meta
+      name="description"
+      content="A specialized asset engine for user identity. SQLite-backed, single binary, high performance."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+      rel="stylesheet"
+    />
+
+    <script>
+      window.GO_CONFIG = {
+        // REMOVED
+      //  BASE_URL: "{{.BaseURL}}" || window.location.origin,
+       BASE_URL: "http://localhost:9980"
+      };
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+            colors: {
+              neutral: {
+                850: "#1f1f1f",
+                900: "#171717",
+                950: "#0a0a0a",
+              },
+            },
+            backgroundImage: {
+              "grid-pattern":
+                "linear-gradient(to right, #f5f5f5 1px, transparent 1px), linear-gradient(to bottom, #f5f5f5 1px, transparent 1px)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"
+    ></script>
+
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+      body {
+        font-feature-settings: "liga", "kern";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Custom Scrollbar */
+      .code-scroll::-webkit-scrollbar {
+        height: 8px;
+      }
+      .code-scroll::-webkit-scrollbar-track {
+        background: #1f1f1f;
+      }
+      .code-scroll::-webkit-scrollbar-thumb {
+        background: #404040;
+        border-radius: 4px;
+      }
+
+      /* Range Slider */
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #171717;
+        margin-top: -6px;
+        cursor: pointer;
+        box-shadow: 0 0 0 2px #fff;
+      }
+      input[type="range"]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #e5e5e5;
+        border-radius: 2px;
+      }
+      /* Color Input Reset */
+      input[type="color"] {
+        -webkit-appearance: none;
+        border: none;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+      input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-white text-neutral-900 antialiased selection:bg-neutral-900 selection:text-white"
+    x-data="avatarApp()"
+  >
+    <header
+      class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-neutral-100 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
+      >
+        <div
+          class="flex items-center gap-2 font-semibold tracking-tight cursor-pointer"
+          @click="window.scrollTo(0,0)"
+        >
+         <div class="w-8 h-8 opacity-80">
+                  <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-brand-900">
+                      <path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" fill="currentColor"/>
+                      <path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" class="text-white" fill="currentColor"/>
+                  </svg>
+              </div>
+          Octa
+        </div>
+
+        <nav class="hidden md:flex gap-8 text-sm font-medium text-neutral-500">
+          <a href="#playground" class="hover:text-neutral-900 transition"
+            >Playground</a
+          >
+          <a href="#configuration" class="hover:text-neutral-900 transition"
+            >Config</a
+          >
+          <a href="#api" class="hover:text-neutral-900 transition">API Docs</a>
+          <a
+            href="https://github.com/onurartan/octa"
+            target="_blank"
+            class="hover:text-neutral-900 transition flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 0C5.37 0 0 5.4 0 12.07c0 5.34 3.44 9.86 8.21 11.46.6.11.82-.26.82-.58v-2.23c-3.34.74-4.04-1.61-4.04-1.61-.55-1.42-1.34-1.8-1.34-1.8-1.1-.77.08-.75.08-.75 1.22.09 1.86 1.26 1.86 1.26 1.08 1.88 2.82 1.34 3.5 1.02.11-.79.42-1.34.76-1.65-2.66-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.23-3.29-.12-.31-.53-1.55.12-3.23 0 0 1-.33 3.3 1.26a11.23 11.23 0 0 1 6 0c2.3-1.59 3.3-1.26 3.3-1.26.65 1.68.24 2.92.12 3.23.77.86 1.23 1.95 1.23 3.29 0 4.7-2.82 5.74-5.5 6.05.44.38.83 1.13.83 2.27v3.37c0 .32.22.7.83.58A12.09 12.09 0 0 0 24 12.07C24 5.4 18.63 0 12 0z"
+              />
+            </svg>
+            GitHub
+          </a>
+        </nav>
+      </div>
+    </header>
+    <section class="relative pt-32 pb-24 overflow-hidden">
+      <div
+        class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-60 -z-10"
+      ></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white -z-10"
+      ></div>
+
+      <div class="max-w-6xl mx-auto px-6 text-center">
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-600 text-xs font-medium mb-8"
+        >
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          v0.0.1 · Public Alpha
+        </div>
+
+        <h1
+          class="text-5xl md:text-7xl font-semibold tracking-tight text-neutral-900 mb-6 leading-tight"
+        >
+          A focused engine for<br />
+          <span class="text-neutral-400">avatars and small assets.</span>
+        </h1>
+
+        <p
+          class="text-xl text-neutral-500 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
+        >
+          Octa is a high-performance avatar and asset service built with Go and
+          SQLite. It generates deterministic avatars, stores uploads, and serves
+          everything from a single binary.
+        </p>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="#playground"
+            class="px-8 py-4 rounded-md bg-neutral-900 text-white font-medium hover:bg-neutral-800 transition shadow-lg shadow-neutral-900/10 flex items-center justify-center gap-2"
+          >
+            Try Playground
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 14l-7 7m0 0l-7-7m7 7V3"
+              />
+            </svg>
+          </a>
+          <a
+            href="#api"
+            class="px-8 py-4 rounded-md bg-white border border-neutral-200 text-neutral-700 font-medium hover:bg-neutral-50 transition"
+          >
+            Read Docs
+          </a>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="why" class="py-24 bg-neutral-50 border-y border-neutral-100">
+      <div class="max-w-6xl mx-auto px-6">
+        
+        <div class="mb-16 max-w-2xl">
+           <h2 class="text-3xl font-semibold tracking-tight text-neutral-900 mb-6">Why we built Octa.</h2>
+           <p class="text-neutral-500 text-lg leading-relaxed">
+             Handling user identities shouldn't require complex object storage infrastructure. Octa is the specialized alternative.
+           </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+           <div class="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm hover:border-neutral-300 transition group">
+              <div class="w-12 h-12 bg-neutral-50 rounded-lg flex items-center justify-center text-neutral-900 mb-6 group-hover:scale-110 transition border border-neutral-100">
+                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+              </div>
+              <h3 class="font-semibold text-neutral-900 mb-3 text-lg">Faster than Filesystem</h3>
+              <p class="text-sm text-neutral-500 leading-relaxed">
+                 Research shows SQLite reads small blobs (like avatars) <strong>35% faster</strong> than the filesystem. Octa leverages WAL mode for high-performance I/O.
+              </p>
+           </div>
+
+           <div class="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm hover:border-neutral-300 transition group">
+              <div class="w-12 h-12 bg-neutral-50 rounded-lg flex items-center justify-center text-neutral-900 mb-6 group-hover:scale-110 transition border border-neutral-100">
+                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+              </div>
+              <h3 class="font-semibold text-neutral-900 mb-3 text-lg">Not another S3 bucket</h3>
+              <p class="text-sm text-neutral-500 leading-relaxed">
+                 Stop managing IAM roles and egress fees for 50KB files. Octa replaces complex object storage with a simple, portable architecture.
+              </p>
+           </div>
+
+           <div class="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm hover:border-neutral-300 transition group">
+              <div class="w-12 h-12 bg-neutral-50 rounded-lg flex items-center justify-center text-neutral-900 mb-6 group-hover:scale-110 transition border border-neutral-100">
+                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+              </div>
+              <h3 class="font-semibold text-neutral-900 mb-3 text-lg">Single Binary Deploy</h3>
+              <p class="text-sm text-neutral-500 leading-relaxed">
+                 No external dependencies. No Redis required. The database, the cache, and the server are all compiled into one lightweight executable.
+              </p>
+           </div>
+        </div>
+
+        <div class="mt-12 flex items-center gap-2">
+           <a href="why-octa.html" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-900 hover:text-neutral-600 transition group">
+              Read the full architectural deep dive
+              <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+           </a>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="playground" class="py-24 bg-white border-y border-neutral-100">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="mb-12 flex items-end justify-between">
+          <div>
+            <h2 class="text-3xl font-semibold tracking-tight text-neutral-900">
+              Asset Playground
+            </h2>
+            <p class="text-neutral-500 mt-2">
+              Test the deterministic generation engine in real-time.
+            </p>
+
+<div class="mt-6 flex items-start gap-3 p-3 rounded-lg bg-yellow-50 border border-yellow-100 text-yellow-800">
+    <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <div class="text-xs leading-relaxed">
+        <strong>Demo Mode:</strong> This playground attempts to connect to <code class="px-1 py-0.5 bg-yellow-100 rounded font-mono">http://localhost:9980</code>. 
+        <br>Ensure your local Octa instance is running to see generated avatars.
+    </div>
+</div>
+          </div>
+        </div>
+
+        <div
+          class="grid lg:grid-cols-12 gap-0 border border-neutral-200 rounded-xl overflow-hidden shadow-sm"
+        >
+          <div
+            class="lg:col-span-4 bg-neutral-50 p-8 border-b lg:border-b-0 lg:border-r border-neutral-200 flex flex-col gap-6 h-full overflow-y-auto"
+          >
+            <div>
+              <label
+                class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2"
+                >Seed Key</label
+              >
+              <div class="relative">
+                <input
+                  type="text"
+                  x-model.debounce.300ms="params.name"
+                  class="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 transition font-mono"
+                  placeholder="username"
+                />
+                <button
+                  @click="randomize()"
+                  class="absolute right-2 top-2 text-neutral-400 hover:text-neutral-900 transition p-1 rounded hover:bg-neutral-100"
+                  title="Randomize"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2"
+                >Style Engine</label
+              >
+              <div
+                class="flex p-1 bg-white border border-neutral-200 rounded-md shadow-sm"
+              >
+                <template x-for="s in ['gradient', 'color', 'soft']">
+                  <button
+                    @click="params.style = s"
+                    class="flex-1 py-1.5 text-xs font-medium rounded transition capitalize"
+                    :class="params.style === s ? 'bg-neutral-900 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'"
+                    x-text="s"
+                  ></button>
+                </template>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2"
+                >Palette</label
+              >
+              <div class="grid grid-cols-4 gap-2">
+                <template x-for="p in ['auto', 'retro', 'pro', 'google']">
+                  <button
+                    @click="params.palette = p"
+                    class="py-1.5 text-[10px] font-bold uppercase rounded border transition"
+                    :class="params.palette === p ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-900'"
+                    x-text="p"
+                  ></button>
+                </template>
+              </div>
+            </div>
+
+            <hr class="border-neutral-200" />
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2"
+                  >Format</label
+                >
+                <div
+                  class="flex p-1 bg-white border border-neutral-200 rounded-md"
+                >
+                  <button
+                    @click="params.type = 'png'"
+                    class="flex-1 py-1 text-xs font-bold rounded"
+                    :class="params.type === 'png' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'"
+                  >
+                    PNG
+                  </button>
+                  <button
+                    @click="params.type = 'svg'"
+                    class="flex-1 py-1 text-xs font-bold rounded"
+                    :class="params.type === 'svg' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'"
+                  >
+                    SVG
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2"
+                  >Shape</label
+                >
+                <div
+                  class="flex p-1 bg-white border border-neutral-200 rounded-md"
+                >
+                  <button
+                    @click="params.shape = 'circle'"
+                    class="flex-1 py-1 text-xs font-bold rounded"
+                    :class="params.shape === 'circle' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'"
+                  >
+                    O
+                  </button>
+                  <button
+                    @click="params.shape = 'square'"
+                    class="flex-1 py-1 text-xs font-bold rounded"
+                    :class="params.shape === 'square' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'"
+                  >
+                    □
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <label
+                  class="text-xs font-semibold text-neutral-500 uppercase tracking-wider"
+                  >Size</label
+                >
+                <span
+                  class="text-xs font-mono text-neutral-400"
+                  x-text="params.w + 'px'"
+                ></span>
+              </div>
+              <input
+                type="range"
+                min="64"
+                max="1024"
+                step="16"
+                x-model.debounce.300ms="params.w"
+                class="w-full"
+              />
+            </div>
+
+            <div x-data="{ open: false }" class="pt-2">
+              <button
+                @click="open = !open"
+                class="flex items-center gap-2 text-xs font-medium text-neutral-600 hover:text-neutral-900 w-full justify-between group"
+              >
+                <span>Advanced Overrides</span>
+                <svg
+                  class="w-3 h-3 transition-transform text-neutral-400 group-hover:text-neutral-900"
+                  :class="open ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              <div
+                x-show="open"
+                class="mt-4 space-y-4 p-4 bg-white border border-neutral-200 rounded-lg shadow-sm"
+                x-collapse
+              >
+                <div>
+                  <label
+                    class="text-[10px] uppercase font-bold text-neutral-400 mb-1 block"
+                    >Override Background</label
+                  >
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="color"
+                      @change="params.bgOverride = $event.target.value"
+                      class="shrink-0 rounded-full overflow-hidden"
+                      title="Pick Color"
+                    />
+                    <input
+                      type="text"
+                      x-model.lazy="params.bgOverride"
+                      placeholder="Hex / Name"
+                      class="w-full px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    class="text-[10px] uppercase font-bold text-neutral-400 mb-1 block"
+                    >Override Text Color</label
+                  >
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="color"
+                      @change="params.colorOverride = $event.target.value"
+                      class="shrink-0 rounded-full overflow-hidden"
+                      title="Pick Color"
+                    />
+                    <input
+                      type="text"
+                      x-model.lazy="params.colorOverride"
+                      placeholder="Hex / Name"
+                      class="w-full px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    class="text-[10px] uppercase font-bold text-neutral-400 mb-1 block"
+                    >Force Initials</label
+                  >
+                  <input
+                    type="text"
+                    x-model.lazy="params.initials"
+                    placeholder="e.g. OA"
+                    class="w-full px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="lg:col-span-8 p-12 bg-white flex flex-col items-center justify-center relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMWgydjJIMUMxeiIgZmlsbD0iI2Y1ZjVmNSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+')]"
+          >
+            <div class="relative group">
+              <div
+                class="absolute -inset-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-2xl opacity-10 group-hover:opacity-20 transition duration-700"
+              ></div>
+              <img
+                :src="generateUrl()"
+                class="relative w-72 h-72 object-cover shadow-2xl transition-all duration-300 bg-white ring-1 ring-neutral-100"
+                :class="params.shape === 'circle' ? 'rounded-full' : 'rounded-3xl'"
+                alt="Avatar Preview"
+              />
+            </div>
+
+            <div
+              class="mt-12 w-full max-w-lg bg-neutral-50 border border-neutral-200 rounded-md flex items-center p-1.5 pl-4 shadow-sm group hover:border-neutral-300 transition"
+            >
+              <div
+                class="text-[10px] font-bold bg-neutral-200 text-neutral-600 px-1.5 py-0.5 rounded mr-3 font-mono"
+              >
+                GET
+              </div>
+              <code
+                class="flex-1 text-xs font-mono text-neutral-600 truncate"
+                x-text="generateUrl()"
+              ></code>
+              <div class="flex border-l border-neutral-200 ml-2 pl-1">
+                <button
+                  @click="copyUrl()"
+                  class="p-2 text-neutral-400 hover:text-neutral-900 transition"
+                  title="Copy"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  @click="downloadAvatar()"
+                  class="p-2 text-neutral-400 hover:text-neutral-900 transition"
+                  title="Download"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <section id="configuration" class="py-24 bg-neutral-50 border-b border-neutral-100">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid lg:grid-cols-2 gap-16 items-start">
+        
+        <div>
+          <h2 class="text-3xl font-semibold tracking-tight text-neutral-900 mb-6">Configuration</h2>
+          <p class="text-neutral-500 mb-8 leading-relaxed">
+            Octa is designed to be "Zero-Config" by default, but highly tunable via `config.yaml`. 
+            Every setting can also be overridden using environment variables (e.g., `OCTA_DATABASE_MAX_SIZE`), making it cloud-native ready.
+          </p>
+          
+          <div class="space-y-8">
+            
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-neutral-900 text-sm font-bold shadow-sm shrink-0">1</div>
+              <div>
+                <h4 class="font-semibold text-neutral-900 text-sm">Storage & Pruning</h4>
+                <p class="text-sm text-neutral-500 mt-1 leading-relaxed">
+                  Define the SQLite database path. Use `max_size` (e.g., "5GB") to enable auto-pruning. Octa will automatically delete the oldest assets when this threshold is reached, keeping disk usage predictable.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-neutral-900 text-sm font-bold shadow-sm shrink-0">2</div>
+              <div>
+                <h4 class="font-semibold text-neutral-900 text-sm">Security & Rate Limiting</h4>
+                <p class="text-sm text-neutral-500 mt-1 leading-relaxed">
+                  `upload_secret` is mandatory for write operations. The built-in `rate_limit` uses a token bucket algorithm to protect public read endpoints from abuse (DDoS) without affecting legitimate users.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-neutral-900 text-sm font-bold shadow-sm shrink-0">3</div>
+              <div>
+                <h4 class="font-semibold text-neutral-900 text-sm">Management Console</h4>
+                <p class="text-sm text-neutral-500 mt-1 leading-relaxed">
+                  Enable the embedded `consoleui` to visualize your asset library, monitor system health, and manually upload files via a web interface.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="rounded-xl overflow-hidden shadow-2xl bg-[#1e1e1e] ring-1 ring-white/10 sticky top-24">
+          <div class="flex items-center justify-between px-4 py-3 bg-[#252526] border-b border-[#333]">
+            <div class="flex gap-2">
+              <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+              <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+              <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+            </div>
+            <div class="text-xs text-neutral-400 font-mono">config.yaml</div>
+          </div>
+          <div class="p-0 overflow-x-auto  code-scroll">
+<pre class="!m-0 !bg-transparent !p-4 max-h-[700px]"><code class="language-yaml">app:
+  name: "Octa"
+  version: "0.0.1"
+  
+base_url: "https://0.0.0.0:9980"
+server:
+  port: 9980
+  env: "production" # development | production
+
+database:
+  path: "./data/octa.db"
+  # Soft limit for auto-cleanup
+  max_size: "5GB"      
+  # How often to check size
+  prune_interval: "10m"
+
+image:
+  # Base size for generated avatars
+  default_size: 360
+  # Reject uploads larger than this
+  max_upload_size: "10MB"
+
+  # Quality: Compression level for image output (1-100)
+  quality: 80
+
+  # MaxKeyLimit: Maximum number of aliases allowed for a single asset mapping (e.g., 7)
+  max_key_limit: 7
+
+
+cache:
+  enabled: true
+  max_capacity: 100 # MB
+  ttl: "30m"
+
+security:
+  # REQUIRED for /upload endpoint
+  upload_secret: "YOUR_SECRET_KEY_HERE" # or use env
+  cors_origins:
+    - "http://localhost:9980" # accept only main
+    - "https://**.example.com" # accept main and subdomains
+    - "https://*.example2.com" # accept only subdomains
+
+  rate_limit:
+    enabled: true
+    requests: 50   # Req/sec per IP
+    burst: 100     # Allow traffic spikes
+    window: "1s"
+
+consoleui:
+  enabled: true    # Access via http://localhost:9980/console
+  user:
+    username: "admin"
+    password: "change_me" # Or use env var</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  
+    <section id="api" class="py-24 bg-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="mb-16">
+          <h2
+            class="text-3xl font-semibold tracking-tight text-neutral-900 mb-4"
+          >
+            API Reference
+          </h2>
+          <p class="text-neutral-500">
+            Simple endpoints to integrate Octa into your backend.
+          </p>
+        </div>
+
+        <div class="grid gap-16">
+          <div
+            class="grid lg:grid-cols-2 gap-12 border-b border-neutral-100 pb-16"
+          >
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <span
+                  class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded border border-green-200"
+                  >GET</span
+                >
+                <h3 class="font-mono text-lg font-semibold text-neutral-900">
+                  /avatar/{seed}
+                </h3>
+              </div>
+              <p class="text-sm text-neutral-500 mb-6 leading-relaxed">
+                Generates a deterministic avatar based on the seed (username,
+                email, or uuid). Supports various formats and themes via query
+                parameters.
+              </p>
+              <table
+                class="w-full text-xs text-left border border-neutral-200 rounded overflow-hidden"
+              >
+                <thead
+                  class="bg-neutral-50 text-neutral-500 font-semibold border-b border-neutral-200"
+                >
+                  <tr>
+                    <th class="px-3 py-2">Param</th>
+                    <th class="px-3 py-2">Type</th>
+                    <th class="px-3 py-2">Description</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-100">
+                  <tr>
+                    <td class="px-3 py-2 font-mono text-neutral-900">theme</td>
+                    <td class="px-3 py-2 text-neutral-500">string</td>
+                    <td class="px-3 py-2 text-neutral-500">
+                      style/palette (e.g. <code>gradient/retro</code>)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="px-3 py-2 font-mono text-neutral-900">size</td>
+                    <td class="px-3 py-2 text-neutral-500">int</td>
+                    <td class="px-3 py-2 text-neutral-500">
+                      Output width in pixels (Default: 360)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="px-3 py-2 font-mono text-neutral-900">
+                      rounded
+                    </td>
+                    <td class="px-3 py-2 text-neutral-500">bool</td>
+                    <td class="px-3 py-2 text-neutral-500">
+                      Apply circular mask (100 or 0)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="px-3 py-2 font-mono text-neutral-900">format</td>
+                    <td class="px-3 py-2 text-neutral-500">string</td>
+                    <td class="px-3 py-2 text-neutral-500">
+                      Output format: <code>png</code> or <code>svg</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <pre
+                class="rounded-lg border border-neutral-200 !bg-neutral-50 text-xs"
+              ><code class="language-bash"># Generate a gradient avatar
+curl "{{.BaseURL}}/avatar/onur?theme=gradient/pro"
+
+# Force SVG format
+curl "{{.BaseURL}}/avatar/octa?format=svg"</code></pre>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-12">
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <span
+                  class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded border border-blue-200"
+                  >POST</span
+                >
+                <h3 class="font-mono text-lg font-semibold text-neutral-900">
+                  /upload
+                </h3>
+              </div>
+              <p class="text-sm text-neutral-500 mb-6 leading-relaxed">
+                Uploads a static asset to the SQLite Blob store. Requires the
+                <code>X-Secret-Key</code> header defined in your config.
+              </p>
+              <div
+                class="p-3 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-600"
+              >
+                <strong>Note:</strong> You can assign multiple alias keys (comma
+                separated) to a single file.
+              </div>
+            </div>
+            <div>
+              <pre
+                class="rounded-lg border border-neutral-200 !bg-neutral-50 text-xs"
+              ><code class="language-bash">curl -X POST {{.BaseURL}}/upload \
+  -H "X-Secret-Key: YOUR_SECRET" \
+  -F "file=@profile.jpg" \
+  -F "keys=user-123,my-profile"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-white py-12 border-t border-neutral-100">
+      <div
+        class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6"
+      >
+        <div class="flex items-center gap-3">
+         <div class="w-8 h-8 overflow-hidden opacity-80">
+                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-brand-900">
+                      <path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" fill="currentColor"/>
+                      <path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" class="text-white" fill="currentColor"/>
+                  </svg>
+              </div>
+           <div>
+                  <div class="font-bold text-dark-900 text-sm">Octa</div>
+                  <div class="text-xs text-gray-500">v0.0.1</div>
+              </div>
+        </div>
+        <p
+          class="text-sm text-neutral-500 font-medium text-center md:text-right"
+        >
+          Designed for avatar services, profile images, and lightweight asset
+          delivery.
+        </p>
+      </div>
+      <div class="max-w-6xl mx-auto px-6 mt-6 text-center md:text-right">
+        <p class="text-xs text-neutral-400">© 2026 Onur Artan. MIT License.</p>
+      </div>
+    </footer>
+
+    <div
+      x-show="toast.show"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="translate-y-4 opacity-0"
+      x-transition:enter-end="translate-y-0 opacity-100"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="translate-y-0 opacity-100"
+      x-transition:leave-end="translate-y-4 opacity-0"
+      class="fixed bottom-6 right-6 z-[100] bg-neutral-900 text-white pl-4 pr-6 py-3 rounded-lg shadow-xl flex items-center gap-3"
+      x-cloak
+    >
+      <div class="text-green-400">
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
+      </div>
+      <p class="text-sm font-medium" x-text="toast.message"></p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+    <script>
+      function avatarApp() {
+        return {
+          baseUrl: window.GO_CONFIG.BASE_URL,
+          toast: { show: false, message: "" },
+          params: {
+            name: "Octa",
+            initials: "",
+            style: "gradient",
+            palette: "auto",
+            bgOverride: "",
+            colorOverride: "",
+            type: "png",
+            w: 512,
+            shape: "circle",
+          },
+          init() {
+            if (this.baseUrl.endsWith("/")) {
+              this.baseUrl = this.baseUrl.slice(0, -1);
+            }
+            this.randomize();
+          },
+          generateUrl() {
+            const p = this.params;
+            const query = new URLSearchParams();
+            const themeVal = `${p.style}/${p.palette}`;
+            query.append("theme", themeVal);
+            if (p.bgOverride) query.append("bg", p.bgOverride.replace("#", ""));
+            if (p.colorOverride)
+              query.append("color", p.colorOverride.replace("#", ""));
+            if (p.initials && p.initials !== "Auto")
+              query.append("initials", p.initials);
+            if (p.type !== "png") query.append("format", p.type);
+            query.append("size", p.w);
+            if (p.shape === "circle") query.append("rounded", "100");
+            else query.append("rounded", "0");
+            return `${this.baseUrl}/avatar/${encodeURIComponent(p.name)}?${query.toString()}`;
+          },
+          randomize() {
+            const names = [
+              "Octa",
+              "Go",
+              "Rust",
+              "Docker",
+              "Kubernetes",
+              "Redis",
+              "Nginx",
+              "Linux",
+              "AWS",
+            ];
+            this.params.name = names[Math.floor(Math.random() * names.length)];
+          },
+          async copyUrl() {
+            try {
+              await navigator.clipboard.writeText(this.generateUrl());
+              this.showToast("Copied to clipboard");
+            } catch (err) {
+              prompt("Copy URL:", this.generateUrl());
+            }
+          },
+          async downloadAvatar() {
+            try {
+              const response = await fetch(this.generateUrl());
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.style.display = "none";
+              a.href = url;
+              a.download = `octa-${this.params.name}.${this.params.type}`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              this.showToast("Download started");
+            } catch (error) {
+              this.showToast("Download failed");
+            }
+          },
+          showToast(msg) {
+            this.toast.message = msg;
+            this.toast.show = true;
+            setTimeout(() => {
+              this.toast.show = false;
+            }, 3000);
+          },
+        };
+      }
+    </script>
+  </body>
+</html>

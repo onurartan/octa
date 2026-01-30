@@ -1,0 +1,52 @@
+# --- Go Build Artifacts ---
+/bin/
+octa
+octa.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+debug/
+
+#  Rust Build Artifacts
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Others
+data/
+
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# envs
+.env
+
+#  Trashs
+.idea/
+.vscode/
+.qodo/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.iml
+
+# Log Files
+*.log
+logs/
+tmp/
+temp/
+coverage.out
+pprof/
+
+# Agentx
+main.agentx
+warden.agentx

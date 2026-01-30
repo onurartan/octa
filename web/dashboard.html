@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Octa Console</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script> -->
+
+    <script>
+        window.GO_CONFIG = { BASE_URL: "{{.BaseURL}}" };
+        if (!window.GO_CONFIG.BASE_URL.startsWith("http")) {
+            window.GO_CONFIG.BASE_URL = window.location.origin;
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        [x-cloak] { display: none !important; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .nav-item.active { background-color: #e2e8f0; color: #0f172a; font-weight: 600; }
+        .nav-item { color: #64748b; }
+        .nav-item:hover:not(.active) { background-color: #f1f5f9; color: #334155; }
+
+        /* Folder Icon Style */
+        .folder-icon { filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3)); }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#0f172a', 600: '#020617' }, 
+                        accent: { 500: '#3b82f6', 600: '#2563eb' } 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-800 h-screen flex overflow-hidden bg-slate-50" x-data="dashboard()">
+
+        <div x-show="loading && !systemError" x-transition.opacity.duration.500ms class="fixed inset-0 z-[100] bg-[#f8fafc] flex flex-col items-center justify-center">
+        <div class="relative animate-pulse">
+            <svg width="64" height="64" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" fill="#7B84F5"/>
+                <path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" fill="#514AE6"/>
+                <rect x="33" y="40" width="10" height="3" rx="1.5" fill="#4943D9"/>
+                <path d="M39 59.5C56 63.5 65.5 54.6667 66 53" stroke="#B7BCFF" stroke-width="2"/>
+            </svg>
+        </div>
+        <p class="mt-4 text-sm font-bold text-slate-400 tracking-wider uppercase">Loading Console...</p>
+    </div>
+
+    <aside class="w-64 bg-white flex flex-col shrink-0 transition-all duration-300 border-r border-slate-200 z-50" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-64 md:translate-x-0 absolute md:relative h-full'">
+        <div class="h-16 flex items-center px-6 border-b border-[#ebebeb]">
+            <div class="flex items-center gap-1 text-slate-900 cursor-pointer" @click="window.location.reload()">
+               <svg width="37" height="37" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M50 8C26 8 12 24 12 44C12 64 24 74 50 74C76 74 88 64 88 44C88 24 74 8 50 8Z" fill="#7B84F5"/>
+<path d="M50 16C30 16 20 28 20 44C20 58 30 66 50 66C70 66 80 58 80 44C80 28 70 16 50 16Z" fill="#514AE6"/>
+<path d="M66 38H34C30.6863 38 28 40.6863 28 44C28 47.3137 30.6863 50 34 50H66C69.3137 50 72 47.3137 72 44C72 40.6863 69.3137 38 66 38Z" fill="#221CA3"/>
+<path d="M32 79C32 76.2386 29.7614 74 27 74C24.2386 74 22 76.2386 22 79V83C22 85.7614 24.2386 88 27 88C29.7614 88 32 85.7614 32 83V79Z" fill="#7B84F5"/>
+<path d="M48 81C48 78.2386 45.7614 76 43 76C40.2386 76 38 78.2386 38 81V87C38 89.7614 40.2386 92 43 92C45.7614 92 48 89.7614 48 87V81Z" fill="#7B84F5"/>
+<path d="M62 81C62 78.2386 59.7614 76 57 76C54.2386 76 52 78.2386 52 81V87C52 89.7614 54.2386 92 57 92C59.7614 92 62 89.7614 62 87V81Z" fill="#7B84F5"/>
+<path d="M78 79C78 76.2386 75.7614 74 73 74C70.2386 74 68 76.2386 68 79V83C68 85.7614 70.2386 88 73 88C75.7614 88 78 85.7614 78 83V79Z" fill="#7B84F5"/>
+<rect x="33" y="40" width="10" height="3" rx="1.5" fill="#4943D9"/>
+<path d="M39 59.5C56 63.5 65.5 54.6667 66 53" stroke="#B7BCFF" stroke-width="2"/>
+</svg>
+               <p class="font-bold text-lg tracking-tight">Octa <span class="font-normal">ConsoleUI</span></p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-3 py-6 space-y-8 overflow-y-auto">
+            <div>
+                <div class="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platform</div>
+                <div class="space-y-1">
+                    <button @click="setTab('overview')" :class="tab === 'overview' ? 'active' : ''" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                        Overview
+                    </button>
+                    <button @click="setTab('library')" :class="tab === 'library' ? 'active' : ''" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Media Library
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuration</div>
+                <div class="space-y-1">
+                    <button @click="setTab('settings')" :class="tab === 'settings' ? 'active' : ''" class="w-full nav-item flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Settings
+                    </button>
+                    <a href="/" target="_blank" class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        Public Site
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            <div class="flex items-center gap-3 p-2 rounded-lg border border-transparent hover:bg-white hover:shadow-sm transition cursor-default group">
+                    <img src="http://localhost:9980/avatar/admin?initials=AD&aType=soft" alt="" class="w-8 h-8 rounded-xl">
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-sm font-bold text-slate-700 truncate" x-text="adminUser">Admin</p>
+                </div>
+                <button @click="logout()" class="text-slate-400 hover:text-red-500 transition" title="Logout">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden h-full bg-[#f8fafc]">
+        
+        <header class="glass-header h-16 flex items-center justify-between px-6 z-10 sticky top-0">
+            <div class="flex items-center gap-4">
+                <button @click="sidebarOpen = !sidebarOpen" class="md:hidden text-slate-500 hover:text-slate-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-bold text-slate-800 leading-tight" x-text="getPageTitle()">Dashboard</h1>
+                    <span class="text-xs text-slate-500" x-text="getPageSubtitle()">Overview & Statistics</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <a href="https://github.com/onurartan/octa" target="_blank" class="text-slate-400 hover:text-slate-900 transition p-1.5 rounded-lg hover:bg-slate-100" title="View on GitHub">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
+                </a>
+                <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                   <button @click="uploadModal.open = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-blue-500/20 flex items-center gap-2 transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="hidden sm:inline">Upload Asset</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-auto flex flex-col relative">
+              <div x-show="systemError" x-transition.opacity class="absolute inset-0 z-30 bg-white flex flex-col items-center justify-center p-8 text-center" x-cloak>
+                <div class="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mb-6 shadow-sm border border-red-100">
+                    <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 mb-2">System Unavailable</h2>
+                <p class="text-slate-500 max-w-md mb-8">We are having trouble connecting to the server.</p>
+                <button @click="fetchData()" class="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition flex items-center gap-2 shadow-lg shadow-slate-200">
+                    Retry Connection
+                </button>
+            </div>
+          
+               <div x-show="!systemError" class="flex-1 flex flex-col">
+            <div x-show="tab === 'overview'" x-transition.opacity class="p-6 md:p-8 space-y-8 flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-300 transition group">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Storage</p><h3 class="text-2xl font-bold text-slate-900 mt-1" x-text="formatBytes(stats.total_size)">0 B</h3></div>
+                        </div>
+                          <p class="text-xs text-slate-500 mt-4 flex items-center gap-1"> Volume of all stored blobs.</p>
+                      
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-300 transition group">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Assets</p><h3 class="text-2xl font-bold text-slate-900 mt-1" x-text="stats.total_count || 0">0</h3></div>
+                            <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-4 flex items-center gap-1"><span class="text-green-500">●</span> SQLite Indexed</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition group">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">RAM Usage</p><h3 class="text-2xl font-bold text-slate-900 mt-1" x-text="formatBytes(stats.ram_usage)">0 B</h3></div>
+                            <div class="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:scale-110 transition"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-4">Go Runtime Memory</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-teal-300 transition group">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">System Uptime</p><h3 class="text-lg font-mono font-bold text-slate-900 mt-1 truncate" x-text="formatUptime(stats.uptime_seconds) || '0s'">0s</h3></div>
+                            <div class="p-2 bg-teal-50 text-teal-600 rounded-lg group-hover:scale-110 transition"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-4 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Service Healthy</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-800">Recent Uploads</h3>
+                            <button @click="setTab('library')" class="text-xs text-indigo-600 font-bold hover:underline">View All</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-slate-500 font-semibold text-xs border-b border-slate-100">
+                                    <tr>
+                                        <th class="px-6 py-2">Asset</th>
+                                        <th class="px-6 py-2">Size</th>
+                                        <th class="px-6 py-2 text-right">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-50">
+                                    <template x-for="item in stats.recent_uploads" :key="item.id">
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="px-6 py-3 font-medium text-slate-700 flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded bg-slate-200 overflow-hidden shrink-0 border border-slate-200"><img :src="item.url" class="w-full h-full object-cover"></div>
+                                                <span class="truncate max-w-[120px]" x-text="item.keys"></span>
+                                            </td>
+                                            <td class="px-6 py-3 text-slate-500 text-xs" x-text="formatBytes(item.size)"></td>
+                                            <td class="px-6 py-3 text-right text-slate-400 text-xs font-mono" x-text="formatSmartDate(item.created_at)"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="!stats.recent_uploads || stats.recent_uploads.length === 0"><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-xs">No recent activity.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group cursor-pointer" @click="uploadModal.open = true">
+                           
+                            <h3 class="text-lg font-bold mb-1">Quick Upload</h3>
+                            <p class="text-slate-400 text-sm mb-4">Drag & drop files to store.</p>
+                            <button class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold backdrop-blur-sm transition flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Upload New Asset</button>
+                        </div>
+
+                            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Server Internals</h4>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2"><span class="text-sm text-slate-600">Goroutines</span><span class="text-sm font-mono font-bold text-slate-900" x-text="stats.num_goroutines || 0">0</span></div>
+                            <div class="flex justify-between items-center"><span class="text-sm text-slate-600">Go Version</span><span class="text-sm font-mono font-bold text-slate-900">1.22+</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+   <div x-show="tab === 'library'" x-transition.opacity class="p-6 md:p-8 space-y-4 flex-1 flex flex-col min-h-0">
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                        <div class="relative w-full sm:w-72">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" x-model.debounce.500ms="search" @input="currentPath=''" placeholder="Search assets..." class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition bg-white">
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2" title="Enable Folder View">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Folders</span>
+                                <button @click="toggleFolderView()" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none" :class="folderViewEnabled ? 'bg-indigo-600' : 'bg-slate-200'">
+                                    <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" :class="folderViewEnabled ? 'translate-x-6' : 'translate-x-1'"/>
+                                </button>
+                            </div>
+                            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                <button @click="setViewMode('table')" class="p-1.5 rounded transition" :class="viewMode === 'table' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></button>
+                                <button @click="setViewMode('gallery')" class="p-1.5 rounded transition" :class="viewMode === 'gallery' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="currentPath || search" class="flex items-center gap-1 text-sm text-slate-500 pb-2 flex-wrap">
+                        <button @click="goHome()" class="hover:text-indigo-600 hover:bg-slate-100 px-2 py-1 rounded transition flex items-center gap-1 font-bold text-slate-700">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Root
+                        </button>
+                        
+                        <template x-if="search">
+                             <div class="flex items-center gap-1">
+                                <span class="text-slate-300">/</span>
+                                <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-100 italic">Search: "<span x-text="search"></span>"</span>
+                                <button @click="search=''; currentPath=''; fetchAssets()" class="text-slate-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                             </div>
+                        </template>
+
+                        <template x-for="(part, index) in pathParts" :key="index">
+                            <div class="flex items-center gap-1">
+                                <span class="text-slate-300">/</span>
+                                <button @click="navigateToPathIndex(index)" class="hover:text-indigo-600 hover:bg-slate-100 px-2 py-1 rounded transition text-slate-600" x-text="part"></button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="flex-1 overflow-auto min-h-0 relative bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        
+                        <div x-show="assetsLoading" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] transition-opacity">
+                            <svg class="animate-spin h-8 w-8 text-indigo-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Assets...</span>
+                        </div>
+
+                        <div x-show="!assetsLoading && currentViewItems.length === 0" class="flex-1 flex flex-col items-center justify-center p-12 text-center" x-cloak>
+                            <template x-if="search">
+                                <div>
+                                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 mx-auto"><svg class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
+                                    <h3 class="text-slate-900 font-bold text-lg">No results found</h3>
+                                    <button @click="search = ''; fetchAssets()" class="mt-4 text-indigo-600 text-sm font-bold hover:underline">Clear Search</button>
+                                </div>
+                            </template>
+                            <template x-if="!search">
+                                <div>
+                                    <div class="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-indigo-100 transform rotate-3 mx-auto"><svg class="w-10 h-10 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                                    <h3 class="text-slate-900 font-bold text-xl">Folder is empty</h3>
+                                    <button @click="uploadModal.open = true" class="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg">Upload Asset</button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div x-show="!assetsLoading && currentViewItems.length > 0" class="flex-1 flex flex-col min-h-0">
+                            <div x-show="viewMode === 'gallery'" class="flex-1 overflow-auto p-4">
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                                    <template x-for="item in currentViewItems" :key="item.type + item.name + item.id">
+                                        <div class="group relative cursor-pointer select-none">
+                                            <div x-show="item.type === 'folder'" @click="navigateFolder(item.name)" class="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:bg-blue-50/30 transition h-[150px] relative">
+                                                <svg class="w-14 h-14 text-blue-500 drop-shadow-sm folder-icon transition-transform group-hover:scale-110 duration-200" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 21a3 3 0 003-3v-4.5a3 3 0 00-3-3h-15a3 3 0 00-3 3V18a3 3 0 003 3h15zM1.5 10.146V6a3 3 0 013-3h3.93a3 3 0 012.12.88l1.38 1.38A3 3 0 0014.05 6H19.5a3 3 0 013 3v1.146A4.483 4.483 0 0019.5 9h-15a4.483 4.483 0 00-3 1.146z" /></svg>
+                                                <span class="text-xs font-bold text-slate-700 mt-2 truncate w-full text-center" x-text="item.name"></span>
+
+                                                   <span class="text-[10px] text-slate-400 mt-0.5 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100" 
+                                          x-text="getFolderCount(item.name) + ' items'">
+                                    </span>
+                                            </div>
+                                            <div x-show="item.type === 'file'" @click="openImageModal(item)" class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col h-[150px] group/file">
+                                                <div class="w-full aspect-square bg-slate-100 overflow-hidden relative">
+                                                    <img :src="item.url" class="w-full h-full object-cover group-hover/file:scale-105 transition duration-500" loading="lazy">
+                                                </div>
+                                                <div class="p-2 bg-white border-t border-slate-100 mt-auto">
+                                                    <p class="font-bold text-[10px] text-slate-700 truncate" x-text="item.name"></p>
+                                                    <span class="text-[9px] font-mono text-slate-400" x-text="formatBytes(item.size)"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <div x-show="viewMode === 'table'" class="flex-1 overflow-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100 sticky top-0 z-10">
+                                        <tr><th class="px-6 py-3 w-16">Type</th><th class="px-6 py-3">Name / Keys</th><th class="px-6 py-3">Size</th><th class="px-6 py-3 text-right">Action</th></tr>
+                                    </thead>
+                                       <tbody class="divide-y divide-slate-50">
+                                    <template x-for="item in currentViewItems" :key="item.type + item.name + item.id">
+                                        <tr class="hover:bg-blue-50/20 transition group">
+                                            <td class="px-6 py-3">
+                                                <template x-if="item.type === 'folder'" >
+                                                    <div class="w-10 h-10 flex items-center justify-center cursor-pointer" @click="navigateFolder(item.name)">
+                                                        <svg class="w-8 h-8 text-blue-500 drop-shadow-sm folder-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 21a3 3 0 003-3v-4.5a3 3 0 00-3-3h-15a3 3 0 00-3 3V18a3 3 0 003 3h15zM1.5 10.146V6a3 3 0 013-3h3.93a3 3 0 012.12.88l1.38 1.38A3 3 0 0014.05 6H19.5a3 3 0 013 3v1.146A4.483 4.483 0 0019.5 9h-15a4.483 4.483 0 00-3 1.146z" /></svg>
+                                                    </div>
+                                                </template>
+                                                <template x-if="item.type === 'file'">
+                                                    <div class="w-10 h-10 rounded-lg bg-white border border-slate-200 p-0.5 overflow-hidden shadow-sm cursor-zoom-in group-hover:scale-110 transition" @click="openImageModal(item, true)">
+                                                        <img :src="item.url" class="w-full h-full object-cover rounded-md" loading="lazy">
+                                                    </div>
+                                                </template>
+                                            </td>
+                                            <td class="px-6 py-3">
+                                                <div class="flex flex-col">
+                                                    <span class="font-mono text-slate-700 font-bold text-xs cursor-pointer hover:text-indigo-600" x-text="item.name" @click="item.type === 'folder' ? navigateFolder(item.name) : openImageModal(item)"></span>
+                                                    <template x-if="item.type === 'file'"><span class="font-mono text-slate-400 text-[10px] truncate max-w-[200px]" x-text="item.id"></span></template>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-3 text-slate-600 font-mono text-xs">
+                                                <span x-text="item.type === 'file' ? formatBytes(item.size) : '-'"></span>
+                                            </td>
+                                            <td class="px-6 py-3 text-right">
+                                                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" x-show="item.type === 'file'">
+                                                    <a :href="item.url" target="_blank" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>
+                                                    <button @click="confirmDelete(item)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                                    <button @click="openImageModal(item)" class="px-4 py-1.5 bg-slate-800 text-white rounded-full text-xs font-bold hover:bg-slate-700 transition">View</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto border-t border-slate-200 pt-4 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#f8fafc]">
+                        <div class="text-xs text-slate-500">
+                            Total <span class="font-bold text-slate-700" x-text="stats.total_items || 0"></span> results.
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button @click="goToPage(1)" :disabled="currentPage === 1" class="p-2 border rounded-lg text-xs hover:bg-white disabled:opacity-50">First</button>
+                            <button @click="prevPage()" :disabled="currentPage === 1" class="px-3 py-2 border rounded-lg text-xs hover:bg-white disabled:opacity-50">Prev</button>
+                             <div class="flex items-center gap-2 px-2"><span class="text-xs text-slate-500 font-medium">Page</span><input type="number" x-model.debounce.500ms="currentPageInput" @change="goToPage(parseInt(currentPageInput))" class="w-12 text-center text-xs font-bold text-slate-700 border border-slate-200 rounded py-1 focus:border-indigo-500 outline-none" min="1" :max="totalPages"><span class="text-xs text-slate-500 font-medium">/ <span x-text="totalPages"></span></span></div>
+                            <!-- <span class="text-xs font-bold text-slate-700 mx-2" x-text="currentPage + ' / ' + totalPages"></span> -->
+                            <button @click="nextPage()" :disabled="currentPage === totalPages" class="px-3 py-2 border rounded-lg text-xs hover:bg-white disabled:opacity-50">Next</button>
+                            <button @click="goToPage(totalPages)" :disabled="currentPage === totalPages" class="p-2 border rounded-lg text-xs hover:bg-white disabled:opacity-50">Last</button>
+                        </div>
+                    </div>
+                </div>
+
+            <div x-show="tab === 'settings'" x-transition.opacity class="p-6 md:p-8 space-y-6 flex-1">
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                            <h3 class="font-bold text-slate-800">Server Configuration</h3>
+                            <p class="text-xs text-slate-500">Technical details about your instance.</p>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Base URL</span><span class="text-sm font-mono font-bold text-indigo-600" x-text="baseUrl"></span></div>
+                            <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Database Engine</span><span class="text-sm text-slate-900">SQLite (Opti Mode)</span></div>
+                            <!-- <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Storage Path</span><span class="text-sm text-slate-600 font-mono" x-text="stats.db_path || './data/'">./data/</span></div> -->
+                            <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Max Upload Size</span><span class="text-sm text-slate-900 font-bold" x-text="stats.max_upload_size || '5 MB'">5 MB</span></div>
+                            <div class="flex justify-between py-2"><span class="text-sm text-slate-500">Auth Method</span><span class="text-sm font-bold text-green-600">HttpOnly Cookie</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                            <h3 class="font-bold text-slate-800">System Actions</h3>
+                            <p class="text-xs text-slate-500">Maintenance and recovery.</p>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div><p class="font-bold text-slate-900 text-sm">Backup Database</p><p class="text-xs text-slate-500 mt-1">Download a snapshot of the SQLite database.</p></div>
+                                <button @click="downloadBackup()" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Download Backup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <footer class="border-t border-slate-200 py-6 px-8 mt-auto bg-white/50 backdrop-blur-sm shrink-0">
+                <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p class="text-xs text-slate-400 font-medium">
+                        &copy; <span x-text="new Date().getFullYear()"></span> Octa. All rights reserved.
+                    </p>
+                    <div class="flex gap-6 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <a href="/" class="hover:text-indigo-600 transition">Docs</a>
+                    </div>
+                </div>
+            </footer>
+</div>
+        </div>
+    </main>
+
+    <div x-show="uploadModal.open" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+        <div @click.away="uploadModal.open = false"  class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800">Upload Asset</h3>
+                <button @click="uploadModal.open = false" class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Secret Key</label>
+                    <div class="relative"><input type="text" x-model="blob.secret" class="w-full pl-3 pr-8 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="Server Secret"><div class="absolute right-2 top-2 text-green-500" x-show="blob.secret" title="Saved locally"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div></div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asset Keys</label>
+                    <div class="flex"><span class="bg-slate-50 border border-r-0 border-slate-200 px-3 py-2 rounded-l-lg text-sm text-slate-500 font-mono">/u/</span><input type="text" x-model="blob.keys" class="w-full px-3 py-2 rounded-r-lg border border-slate-200 text-sm font-mono text-indigo-600 focus:border-indigo-500 outline-none transition" placeholder="folder/logo, site-icon"></div>
+                    <p class="text-[10px] text-slate-400 mt-1 flex justify-between">
+                        <span>Use slashes (/) for folders.</span>
+                        <span :class="blob.keys.split(',').filter(k => k.trim()).length > MAX_ASSET_KEYS ? 'text-red-500 font-bold' : ''">Max <span x-text="MAX_ASSET_KEYS"></span> keys.</span>
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mode</label>
+                        <div class="relative">
+                            <select x-model="blob.mode" class="w-full pl-3 pr-8 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none appearance-none bg-white">
+                                <option value="square">Square (Avatar)</option>
+                                <option value="fit">Fit (Max Px)</option>
+                                <option value="scale">Scale (%)</option>
+                                <option value="original">Original</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></div>
+                        </div>
+                    </div>
+                    <div x-show="blob.mode === 'square' || blob.mode === 'fit'">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Max Size (px)</label>
+                        <input type="number" x-model="blob.size" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none" placeholder="256">
+                    </div>
+                    <div x-show="blob.mode === 'scale'">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Scale (%)</label>
+                        <input type="number" x-model="blob.scale" min="1" max="100" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none" placeholder="75">
+                    </div>
+                </div>
+
+                <div class="relative group cursor-pointer border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl p-8 text-center transition">
+                    <input type="file" @change="handleFile($event)" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                    <div x-show="!blob.file"><svg class="w-8 h-8 text-slate-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg><p class="text-sm font-bold text-slate-600">Click to upload</p><p class="text-xs text-slate-400">PNG, JPG, WebP</p></div>
+                    <div x-show="blob.file" class="flex flex-col items-center"><span class="text-sm font-bold text-indigo-600 truncate max-w-[200px]" x-text="blob.file?.name"></span><span class="text-xs text-red-500 hover:underline mt-1 relative z-30" @click.prevent="blob.file = null">Remove</span></div>
+                </div>
+                <button @click="uploadBlob()" :disabled="blob.loading || !blob.file" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition shadow-lg shadow-slate-900/10"><span x-text="blob.loading ? 'Uploading...' : 'Upload Asset'"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="imageModal.viewer" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md" x-cloak>
+        <div @click.away="imageModal.viewer = false" class="relative max-w-5xl w-full flex flex-col items-center p-1">
+            <img :src="imageModal.previewUrl || imageModal.data.url" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl border border-slate-700/50">
+            <div class="mt-6 flex max-md:flex-col gap-4">
+                <button @click="imageModal.open = true; imageModal.viewer = false, imageModal.viewerIndex = false" class="px-6 py-2 bg-indigo-500 text-white rounded-full text-sm font-bold hover:bg-indigo-400 transition" x-show="!imageModal.open">Open Detailed View</button>
+                <a :href="imageModal.data.url" download class="px-6 py-2 bg-white text-slate-900 rounded-full text-sm font-bold hover:bg-slate-100 transition flex items-center gap-2">Download Original</a>
+                <button @click="closeViewerImageModal()" class="px-6 py-2 bg-slate-800 text-white rounded-full text-sm font-bold hover:bg-slate-700 transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+   <div x-show="imageModal.open" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md" 
+         :class="imageModal.viewer ? 'z-40' : 'z-50'" 
+         x-cloak
+         @click.self="if(!imageModal.viewer) imageModal.open = false">
+        <div  class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col md:flex-row overflow-hidden max-h-[85vh] max-md:max-h-[95vh]">
+            
+            <div class="md:w-2/3 bg-slate-100 flex flex-col items-center justify-center p-8 relative border-r border-slate-200">
+                <img :src="imageModal.data.url" @click="openViewerFromDetail()" class="max-w-full max-h-full object-contain rounded shadow-sm transition duration-300 cursor-zoom-in hover:shadow-md" title="Click for Fullscreen">
+
+                <div class="absolute bottom-6 z-20" x-show="!imageModal.newFile">
+                     <input type="file" x-ref="replaceInput" @change="handleReplaceFile($event)" class="hidden" accept="image/*">
+                     <button @click="$refs.replaceInput.click()" class="bg-white/90 text-slate-800 px-5 py-2.5 rounded-full text-sm font-bold shadow-lg hover:bg-white hover:scale-105 transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Replace Image
+                    </button>
+                </div>
+
+                <div x-show="imageModal.newFile" x-transition.slide.up class="absolute bottom-6 z-20 bg-white p-2 pr-4 rounded-2xl shadow-xl flex items-center gap-4 border border-slate-200">
+                    <div class="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 shrink-0 group cursor-pointer" @click="openViewerFromDetail()">
+                        <img :src="imageModal.previewUrl" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">New Image</span>
+                        <span class="text-xs font-bold text-slate-800 truncate max-w-[120px]" x-text="imageModal.newFile?.name"></span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-100"></div>
+                    
+                    <div class="relative">
+                        <button @click="imageModal.showSettings = !imageModal.showSettings" class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition" :class="imageModal.showSettings ? 'bg-indigo-50 text-indigo-600' : ''" title="Image Settings">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                        </button>
+                        
+                        <div x-show="imageModal.showSettings" @click.away="imageModal.showSettings = false" x-transition.origin.bottom class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white rounded-xl shadow-2xl border border-slate-100 p-4 z-50">
+                            <h4 class="text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-50">Processing Options</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Mode</label>
+                                    <select x-model="imageModal.replaceMode" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:border-indigo-500 outline-none">
+                                        <option value="square">Square (Avatar)</option>
+                                        <option value="fit">Fit (Max Px)</option>
+                                        <option value="scale">Scale (%)</option>
+                                        <option value="original">Original</option>
+                                    </select>
+                                </div>
+                                <div x-show="imageModal.replaceMode === 'square' || imageModal.replaceMode === 'fit'">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Size (px)</label>
+                                    <input type="number" x-model="imageModal.replaceSize" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:border-indigo-500 outline-none">
+                                </div>
+                                <div x-show="imageModal.replaceMode === 'scale'">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Scale (%)</label>
+                                    <input type="number" x-model="imageModal.replaceScale" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:border-indigo-500 outline-none">
+                                </div>
+                            </div>
+                            <div class="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-slate-100 transform rotate-45"></div>
+                        </div>
+                    </div>
+
+                    <button @click="clearReplace()" class="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition" title="Cancel Replace">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="md:w-1/3 p-6 flex flex-col border-l border-slate-200 overflow-y-auto">
+                <div class="flex justify-between items-start mb-6">
+                    <div><h3 class="font-bold text-slate-900 text-lg">Asset Details</h3><p class="text-xs text-slate-500 font-mono  max-w-[150px]" x-text="imageModal.data.id"></p></div>
+                    <button @click="imageModal.open = false" class="text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+
+                <div class="space-y-4 flex-1 ">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                             <label class="block text-xs font-bold text-slate-500 uppercase">Asset Keys</label>
+                             <span class="text-[10px] font-bold" :class="imageModal.tags.length >= MAX_ASSET_KEYS ? 'text-red-500' : 'text-slate-400'" x-text="imageModal.tags.length + '/' + MAX_ASSET_KEYS"></span>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2 mb-2 p-2 bg-slate-50 rounded-lg min-h-[40px] border border-slate-100">
+                            <template x-for="(tag, index) in imageModal.tags" :key="index">
+                                <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                                    <span x-text="tag"></span>
+                                    <button @click="removeTag(index)" class="hover:text-indigo-900 focus:outline-none"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                                </span>
+                            </template>
+                            <input type="text" x-model="imageModal.tagInput" @keydown.enter.prevent="addTag()" @keydown.comma.prevent="addTag()" placeholder="+ Add key" class="bg-transparent text-sm focus:outline-none flex-1 min-w-[60px] text-slate-700 placeholder-slate-400" :disabled="imageModal.tags.length >= MAX_ASSET_KEYS">
+                        </div>
+                        <p class="text-[10px] text-slate-400" x-show="imageModal.tags.length < MAX_ASSET_KEYS">Press Enter or Comma to add keys. Use '/' for folders.</p>
+                        <p class="text-[10px] text-red-500 font-bold" x-show="imageModal.tags.length >= MAX_ASSET_KEYS">Max key limit reached.</p>
+
+                           <p class="text-[10px] text-red-500 font-bold" x-show="imageModal.tags.length <= 0">There must be at least one key.</p>
+                    </div>
+
+                    <div class="space-y-2 text-sm text-slate-600 pt-4 border-t border-slate-100">
+                        <div class="flex justify-between border-b border-slate-50 pb-2"><span>Size</span> <span class="font-mono text-slate-900" x-text="formatBytes(imageModal.data.size)"></span></div>
+                        <div class="flex justify-between border-b border-slate-50 pb-2"><span>Dimensions</span> <span class="font-mono text-slate-900" x-text="imageModal.data.width ? `${imageModal.data.width} x ${imageModal.data.height} px` : '-'"></span></div>
+                        <div class="flex justify-between border-b border-slate-50 pb-2"><span>Created</span> <span x-text="new Date(imageModal.data.created_at).toLocaleDateString()"></span></div>
+                        <div class="flex justify-between"><span>Public URL</span> <a :href="imageModal.data.url" target="_blank" class="text-indigo-600 hover:underline text-xs truncate max-w-[150px]">Open Link</a></div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-slate-100 space-y-3">
+                    <button @click="saveChanges()" :disabled="imageModal.loading" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition flex justify-center items-center gap-2">
+                        <span x-show="!imageModal.loading">Save Changes</span>
+                        <span x-show="imageModal.loading">Saving...</span>
+                    </button>
+                    <a :href="imageModal.data.url" download class="block w-full py-2 text-center border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition">Download Image</a>
+                    <button @click="confirmDelete(imageModal.data)" class="w-full py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition">Delete Asset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="deleteModal.open" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+        <div @click.away="deleteModal.open = false" class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
+            <h3 class="text-lg font-bold text-slate-900">Delete Asset?</h3>
+            <p class="text-sm text-slate-500 mt-2 mb-6">Permanently delete <span class="font-mono text-slate-800 bg-slate-100 px-1 rounded" x-text="deleteModal.targetKey"></span>? This cannot be undone.</p>
+            <div class="flex gap-3">
+                <button @click="deleteModal.open = false" class="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+                <button @click="executeDelete()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition">Delete</button>
+            </div>
+        </div>
+    </div>
+
+<div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+         class="fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-slate-900/95 backdrop-blur shadow-2xl rounded-xl border border-slate-700/50 p-4 flex items-start gap-4 text-white" 
+         x-cloak>
+        
+        <div class="shrink-0 mt-0.5">
+            <svg x-show="toast.type === 'success'" class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <svg x-show="toast.type === 'error'" class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <svg x-show="toast.type === 'info'" class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+
+        <div class="flex-1">
+            <h4 class="text-sm font-bold leading-none mb-1" x-text="toast.type === 'error' ? 'Error' : (toast.type === 'success' ? 'Success' : 'Info')"></h4>
+            <p class="text-xs text-slate-300 leading-relaxed break-words font-medium" x-text="toast.message"></p>
+        </div>
+
+        <button @click="toast.show = false" class="shrink-0 text-slate-500 hover:text-white transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+
+
+  <script defer src="/console/static/js/dashboard.js"></script>
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+</body>
+</html>

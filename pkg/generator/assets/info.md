@@ -1,0 +1,1 @@
+Styles and assets structures are preset to support creating avatars in different styles. Styles and assets structures have been added for future avatar production in different styles. 

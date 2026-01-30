@@ -1,0 +1,42 @@
+app:
+  name: "Octa"
+  version: "0.0.1"
+
+server:
+  port: 9980
+  env: "development"
+
+database:
+  path: "./data/avatar.db"
+  max_size: "2GB"
+  prune_interval: "5m"
+
+image:
+  default_size: 360
+  quality: 80
+  max_upload_size: "5MB"
+  max_key_limit: 7
+
+cache:
+  enabled: true
+  max_capacity: 100 # MB
+  ttl: "30m"
+
+security:
+  upload_secret: "CHANGE_THIS_IN_ENV"
+  cors_origins:
+    - "http://localhost:9980" # accept only main
+    - "https://**.example.com" # accept main and subdomains
+    - "https://*.example2.com" # accept only subdomains
+
+  rate_limit:
+    enabled: true
+    requests: 20
+    window: "1s"
+    burst: 50
+
+consolui:
+  enabled: true
+  # user:
+  # username: "admin"
+  # password: "123"
