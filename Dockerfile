@@ -1,12 +1,13 @@
 # BuildApp Stage
 FROM golang:1.24-alpine AS builder
 
-ENV GOPROXY=https://proxy.golang.com.cn,direct
-ENV GODEBUG=netdns=go
-
 RUN apk add --no-cache build-base git
 
 WORKDIR /app
+
+ENV GOPROXY=https://proxy.golang.com,direct
+ENV GODEBUG=netdns=go
+ENV CGO_ENABLED=1
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -14,11 +15,15 @@ RUN go mod download
 COPY . .
 
 # RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o octa ./cmd/octa
-RUN CGO_ENABLED=1 GOOS=linux go build \
-    -ldflags="-s -w -extldflags '-static'" \
+# RUN CGO_ENABLED=1 GOOS=linux go build \
+#     -ldflags="-s -w -extldflags '-static'" \
+#     -trimpath \
+#     -o octa ./cmd/octa
+
+RUN GOOS=linux go build \
+    -ldflags="-s -w -linkmode external -extldflags '-static'" \
     -trimpath \
     -o octa ./cmd/octa
-
 
 # RunApp Stage
 FROM alpine:latest
