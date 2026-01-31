@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"os"
 
 	"octa/internal/appinfo"
 	"octa/internal/config"
@@ -21,11 +22,19 @@ type PageData struct {
 }
 
 func main() {
-	printAsciiLogo()
-	printSignature()
+
+	utils.LoadEnv()
+
+startupMessageActive := os.Getenv("STARTUP_LOG_ACTIVE")
+
+if startupMessageActive != "false" {
+    printAsciiLogo()
+    printSignature()
+}
+	
 
 	// Load Config & Env
-	utils.LoadEnv()
+	
 	config.Load()
 
 	// Connect DB

@@ -33,6 +33,8 @@ type InConfigAppConfig struct {
 	// Version: Application semantic version (e.g., "0.0.1")
 	Version string `mapstructure:"version"`
 
+	StartMessage bool `mapstructure:"start_message"`
+
 	// REMOVED
 	// LandingPage: Toggle to enable/disable the built-in welcome screen at root "/"
 	// LandingPage bool `mapstructure:"landing_page"`

@@ -1,6 +1,7 @@
 app:
   name: "Octa"
   version: "0.0.1"
+  start_message: false
 
 server:
   port: 9980

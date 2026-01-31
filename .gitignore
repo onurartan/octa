@@ -1,6 +1,6 @@
 # --- Go Build Artifacts ---
 /bin/
-octa
+/octa
 octa.exe
 *.exe
 *.exe~
