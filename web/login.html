@@ -323,7 +323,7 @@
               const data = await res.json().catch(() => null);
 
               if (res.ok) {
-                window.location.href = "/admin/dashboard";
+                window.location.href = "/console";
               } else {
                 throw new Error(
                   data?.message || "Invalid credentials provided.",

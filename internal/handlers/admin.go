@@ -61,7 +61,7 @@ type PaginatedResponse struct {
 // `
 
 // GetStats returns server health, memory metrics, and recent activity.
-// GET /api/admin/stats
+// GET /console/api/stats
 func GetStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -158,7 +158,7 @@ func GetStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListAssets returns a paginated list of all stored assets without binary data.
-// GET /api/admin/assets
+// GET /console/api/assets
 func ListAssets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -316,7 +316,7 @@ func ListAssets(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// DELETE /api/admin/assets/{id}
+// DELETE /console/api/assets/{id}
 func DeleteAssetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
@@ -349,7 +349,7 @@ type UpdateKeysRequest struct {
 }
 
 // UpdateAssetKeys replaces all custom keys/slugs for a specific asset.
-// UPDATE /api/admin/assets/{id}
+// UPDATE /console/api/assets/{id}
 func UpdateAssetKeys(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
