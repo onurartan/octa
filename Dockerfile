@@ -46,6 +46,6 @@ RUN chown -R octauser:octagroup /app && \
 
 USER octauser
 
-EXPOSE 9980
+# EXPOSE 9980
 
 CMD ["./octa"]
