@@ -6,7 +6,6 @@ RUN apk add --no-cache build-base git
 WORKDIR /app
 
 ENV GOPROXY=https://proxy.golang.org,direct
-ENV GODEBUG=netdns=go
 ENV CGO_ENABLED=1
 
 COPY go.mod go.sum ./
@@ -21,7 +20,7 @@ COPY . .
 #     -o octa ./cmd/octa
 
 RUN GOOS=linux go build \
-    -ldflags="-s -w -linkmode external -extldflags '-static'" \
+    -ldflags="-s -w" \
     -trimpath \
     -o octa ./cmd/octa
 
