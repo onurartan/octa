@@ -5,7 +5,7 @@ RUN apk add --no-cache build-base git
 
 WORKDIR /app
 
-ENV GOPROXY=https://proxy.golang.com,direct
+ENV GOPROXY=https://proxy.golang.org,direct
 ENV GODEBUG=netdns=go
 ENV CGO_ENABLED=1
 
